@@ -3,7 +3,7 @@ import os
 from dataclasses import dataclass
 from typing import List
 
-import openai
+from openai import OpenAI
 from pyppeteer import launch
 
 from dotenv import load_dotenv
@@ -20,17 +20,31 @@ class WebAgent:
 
     def __init__(self, api_key: str, endpoint: str, headless: bool = False) -> None:
         self.api_key = api_key
-        openai.api_key = api_key
+        self.endpoint = endpoint
+        self.client = OpenAI(
+            base_url=endpoint,
+            api_key=api_key
+        )
         self.headless = headless
         self.browser = None
         self.page = None
-        self.endpoint = endpoint
         self.tasks: List[Task] = []
         self.goal: str | None = None
 
     async def start_browser(self) -> None:
         """Launch a new browser session."""
-        self.browser = await launch(headless=self.headless)
+        
+        CHROME_PATH = r"C:\Program Files\Google\Chrome\Application\chrome.exe"  # or Edge path
+        self.browser = await launch(
+            headless=self.headless,
+            executablePath=CHROME_PATH,
+            args=[
+                "--no-sandbox",
+                "--disable-setuid-sandbox",
+                "--disable-dev-shm-usage",
+            ],
+        )
+        # self.browser = await launch(headless=self.headless)
         self.page = await self.browser.newPage()
 
     async def close_browser(self) -> None:
@@ -41,7 +55,7 @@ class WebAgent:
     def plan_tasks(self, goal: str) -> None:
         """Break a goal into an initial list of tasks."""
         self.goal = goal
-        response = openai.ChatCompletion.create(
+        response = self.client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {
@@ -53,7 +67,7 @@ class WebAgent:
         )
         lines = [
             line.strip("- ")
-            for line in response["choices"][0]["message"]["content"].splitlines()
+            for line in response.choices[0].message.content.splitlines()
             if line.strip()
         ]
         for line in lines:
@@ -68,11 +82,11 @@ class WebAgent:
             "NAVIGATE <url>\nCLICK <css selector>\nTYPE <css selector> <text>\nDONE\n"
             f"HTML:\n{html[:2000]}\nTask: {task.description}"
         )
-        response = openai.ChatCompletion.create(
+        response = self.client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
         )
-        command = response["choices"][0]["message"]["content"].strip()
+        command = response.choices[0].message.content.strip()
         if command.upper().startswith("NAVIGATE"):
             url = command.split(maxsplit=1)[1]
             await self.page.goto(url)
@@ -93,10 +107,10 @@ class WebAgent:
             f"Goal: {self.goal}\nHTML:\n{html[:2000]}\n"
             "What is the next task? Reply DONE if the goal is complete."
         )
-        next_step = openai.ChatCompletion.create(
+        next_step = self.client.chat.completions.create(
                     model="gpt-5",
                     messages=[{"role": "user", "content": followup}],
-                )["choices"][0]["message"]["content"].strip()
+                ).choices[0].message.content.strip()
         if next_step.upper() != "DONE":
             self.tasks.append(Task(next_step))
 

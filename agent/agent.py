@@ -20,7 +20,7 @@ class WebAgent:
 
     def __init__(self, api_key: str, endpoint: str, headless: bool = False) -> None:
         self.api_key = api_key
-        self.endpoint = endpoint
+        self.endpoint = f"{endpoint}"
         self.client = OpenAI(
             base_url=endpoint,
             api_key=api_key
@@ -56,7 +56,7 @@ class WebAgent:
         """Break a goal into an initial list of tasks."""
         self.goal = goal
         response = self.client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model="gpt-5-mini",
             messages=[
                 {
                     "role": "system",
@@ -83,7 +83,7 @@ class WebAgent:
             f"HTML:\n{html[:2000]}\nTask: {task.description}"
         )
         response = self.client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model="gpt-5-mini",
             messages=[{"role": "user", "content": prompt}],
         )
         command = response.choices[0].message.content.strip()
@@ -108,7 +108,7 @@ class WebAgent:
             "What is the next task? Reply DONE if the goal is complete."
         )
         next_step = self.client.chat.completions.create(
-                    model="gpt-5",
+                    model="gpt-5-mini",
                     messages=[{"role": "user", "content": followup}],
                 ).choices[0].message.content.strip()
         if next_step.upper() != "DONE":

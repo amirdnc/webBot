@@ -1,4 +1,4 @@
-import argparse
+﻿import argparse
 
 DEFAULT_GOAL = "what is the weather in tokyo?"
 
@@ -6,10 +6,9 @@ DEFAULT_GOAL = "what is the weather in tokyo?"
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Goal-oriented web agent")
     parser.add_argument(
-        "goal",
-        nargs="?",
+        "--goal",
         default=DEFAULT_GOAL,
-        help="Goal the agent should accomplish",
+        help="Goal the agent should accomplish.",
     )
     parser.add_argument(
         "--verbose",
